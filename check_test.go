@@ -854,6 +854,30 @@ var _ = DescribeTable("tracking semver tags",
 			},
 		},
 	),
+	Entry("prerelease prefixes opted in",
+		SemverTagCheckExample{
+			Tags: map[string]string{
+				"1.0.0-alpha.1": "random-0",
+				"1.0.0":         "random-1",
+				"1.2.1-beta.1":  "random-2",
+				"1.2.1":         "random-3",
+				"2.0.0-rc.1":    "random-4",
+				"2.0.0":         "random-5",
+				"2.0.0-build.1": "random-6",
+			},
+			PreReleases: true,
+			PreReleasePrefixes: []string{"build"},
+			Versions: []string{
+				"1.0.0-alpha.1",
+				"1.0.0",
+				"1.2.1-beta.1",
+				"1.2.1",
+				"2.0.0-build.1",
+				"2.0.0-rc.1",
+				"2.0.0",
+			},
+		},
+	),
 	Entry("prereleases do not include 'variants'",
 		SemverTagCheckExample{
 			Tags: map[string]string{
@@ -1032,6 +1056,34 @@ var _ = DescribeTable("tracking semver tags",
 			},
 		},
 	),
+	Entry("opting in to prereleases allows additional '-' suffixes before variant",
+		SemverTagCheckExample{
+			Tags: map[string]string{
+				"1.0.0-build-foo":       "random-1",
+				"1.0.0-rc.1-foo":        "random-2",
+				"1.0.0-alpha.1-foo":     "random-3",
+				"1.0.0-beta.1-foo":      "random-4",
+				"1.0.0-bar-foo":         "random-5",
+				"1.0.0-rc.1-bar-foo":    "random-6",
+				"1.0.0-alpha.1-bar-foo": "random-7",
+				"1.0.0-beta.1-bar-foo":  "random-8",
+			},
+
+			Variant:     "foo",
+			PreReleases: true,
+			PreReleasePrefixes: []string{"build"},
+
+			Versions: []string{
+				"1.0.0-alpha.1-foo",
+				"1.0.0-alpha.1-bar-foo",
+				"1.0.0-beta.1-foo",
+				"1.0.0-beta.1-bar-foo",
+				"1.0.0-build-foo",
+				"1.0.0-rc.1-foo",
+				"1.0.0-rc.1-bar-foo",
+			},
+		},
+	),
 	Entry("tries mirror and falls back on original repository",
 		SemverTagCheckExample{
 			Tags: map[string]string{
@@ -1065,6 +1117,7 @@ type SemverTagCheckExample struct {
 	Tags map[string]string
 
 	PreReleases bool
+	PreReleasePrefixes []string
 	Variant     string
 
 	SemverConstraint string
@@ -1101,10 +1154,11 @@ func (example SemverTagCheckExample) Run() {
 
 	req := resource.CheckRequest{
 		Source: resource.Source{
-			Repository:       repo.Name(),
-			PreReleases:      example.PreReleases,
-			Variant:          example.Variant,
-			SemverConstraint: example.SemverConstraint,
+			Repository:         repo.Name(),
+			PreReleases:        example.PreReleases,
+			PreReleasePrefixes: example.PreReleasePrefixes,
+			Variant:            example.Variant,
+			SemverConstraint:   example.SemverConstraint,
 		},
 	}
 
