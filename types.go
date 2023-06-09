@@ -95,6 +95,7 @@ type Source struct {
 	SemverConstraint string `json:"semver_constraint,omitempty"`
 
 	Tag Tag `json:"tag,omitempty"`
+	TagRegex string `json:"tag_regex,omitempty"`
 
 	BasicCredentials
 	AwsCredentials

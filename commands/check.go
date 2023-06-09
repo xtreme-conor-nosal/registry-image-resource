@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"regexp"
 
 	"github.com/Masterminds/semver/v3"
 	resource "github.com/concourse/registry-image-resource"
@@ -137,6 +138,14 @@ func checkRepository(repo name.Repository, source resource.Source, from *resourc
 		}
 	}
 
+	var regex *regexp.Regexp
+	if source.TagRegex != "" {
+		regex, err = regexp.Compile(source.TagRegex)
+		if err != nil {
+			return resource.CheckResponse{}, fmt.Errorf("parse tag regex: %w", err)
+		}
+	}
+
 	for _, identifier := range tags {
 		var ver *semver.Version
 		if identifier == bareTag {
@@ -162,32 +171,38 @@ func checkRepository(repo name.Repository, source resource.Source, from *resourc
 				continue
 			}
 
-			pre := ver.Prerelease()
-			if pre != "" {
-				// pre-releases not enabled; skip
-				if !source.PreReleases {
+			if regex != nil {
+				if ! regex.MatchString(identifier) {
 					continue
 				}
-
-				preReleasePrefixes := []string{"alpha", "beta", "rc"}
-				if source.PreReleasePrefixes != nil && len(source.PreReleasePrefixes) > 0 {
-					preReleasePrefixes = append(preReleasePrefixes, source.PreReleasePrefixes...)
-				} else {
-					if strings.Contains(pre, "-") {
-						// contains additional variant
+			} else {
+				pre := ver.Prerelease()
+				if pre != "" {
+					// pre-releases not enabled; skip
+					if !source.PreReleases {
 						continue
 					}
-				}
 
-				match := false
-				for _, prefix := range preReleasePrefixes {
-					if strings.HasPrefix(pre, prefix) {
-						match = true
+					preReleasePrefixes := []string{"alpha", "beta", "rc"}
+					if source.PreReleasePrefixes != nil && len(source.PreReleasePrefixes) > 0 {
+						preReleasePrefixes = append(preReleasePrefixes, source.PreReleasePrefixes...)
+					} else {
+						if strings.Contains(pre, "-") {
+							// contains additional variant
+							continue
+						}
 					}
-				}
-				if ! match {
-					// additional variant, not a prerelease segment
-					continue
+
+					match := false
+					for _, prefix := range preReleasePrefixes {
+						if strings.HasPrefix(pre, prefix) {
+							match = true
+						}
+					}
+					if ! match {
+						// additional variant, not a prerelease segment
+						continue
+					}
 				}
 			}
 

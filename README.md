@@ -80,6 +80,15 @@ differences:
     </td>
   </tr>
   <tr>
+    <td><code>tag_regex</code> <em>(Optional)</em></td>
+    <td>
+    Monitor semver tags that match the provided regular expression.
+    Results are sorted in semver order.
+    <br>
+    Takes precedence over <code>pre_releases</code>
+    </td>
+  </tr>
+  <tr>
     <td><code>variant</code> <em>(Optional)</em></td>
     <td>
     Detect only tags matching this variant suffix, and push version tags with

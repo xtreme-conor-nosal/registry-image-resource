@@ -1111,6 +1111,60 @@ var _ = DescribeTable("tracking semver tags",
 			Versions: []string{"1.0.0", "1.2.1", "2.0.0"},
 		},
 	),
+	Entry("tag regex for final versions",
+		SemverTagCheckExample{
+			Tags: map[string]string{
+				"1.0.0":         "random-1",
+				"1.0.0-alpha.1": "random-2",
+				"1.2.1":         "random-3",
+				"2.0.0":         "random-5",
+			},
+
+			TagRegex: "^[0-9].[0-9].[0-9]$",
+
+			Versions: []string{
+				"1.0.0",
+				"1.2.1",
+				"2.0.0",
+			},
+		},
+	),
+	Entry("tag regex for arbitrary prerelease",
+		SemverTagCheckExample{
+			Tags: map[string]string{
+				"1.0.0":         "random-1",
+				"1.0.0-alpha.1": "random-2",
+				"1.2.0-dev.1-built.123": "random-3",
+				"1.2.1":         "random-4",
+				"2.0.0":         "random-5",
+			},
+
+			TagRegex: "^[0-9]\\.[0-9]\\.[0-9]-dev\\.[0-9]+.built\\.[0-9]+$",
+
+			Versions: []string{
+				"1.2.0-dev.1-built.123",
+			},
+		},
+	),
+	Entry("combine tag regex, semver constraint, and variant",
+		SemverTagCheckExample{
+			Tags: map[string]string{
+				"1.1.0-dev.1-built.123-foo": "random-1",
+				"1.2.0-dev.1-built.123-foo": "random-2",
+				"1.3.0-dev.1-built.123-foo": "random-3",
+				"1.3.0-dev.1-built.123-bar": "random-4",
+			},
+
+			TagRegex: "^[0-9]\\.[0-9]\\.[0-9]-dev\\.[0-9]+.built\\.[0-9]+.*$",
+			Variant: "foo",
+			SemverConstraint: ">= 1.2.0-0",
+
+			Versions: []string{
+				"1.2.0-dev.1-built.123-foo",
+				"1.3.0-dev.1-built.123-foo",
+			},
+		},
+	),
 )
 
 type SemverTagCheckExample struct {
@@ -1121,6 +1175,8 @@ type SemverTagCheckExample struct {
 	Variant     string
 
 	SemverConstraint string
+
+	TagRegex string
 
 	Repository     string
 	RegistryMirror string
@@ -1159,6 +1215,7 @@ func (example SemverTagCheckExample) Run() {
 			PreReleasePrefixes: example.PreReleasePrefixes,
 			Variant:            example.Variant,
 			SemverConstraint:   example.SemverConstraint,
+			TagRegex:           example.TagRegex,
 		},
 	}
 
